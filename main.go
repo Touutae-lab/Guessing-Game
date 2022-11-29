@@ -66,8 +66,69 @@ func getValue(res http.ResponseWriter, req *http.Request) {
 	res.Write(data)
 }
 
+func getPassword(res http.ResponseWriter, req *http.Request) {
+	res.WriteHeader(http.StatusCreated)
+	res.Header().Set("Content-Type", "application/json")
+
+	result := make(map[string]string)
+	result["password"] = current_password.value
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		log.Println("Failed to marshaling json")
+		log.Println(err)
+	}
+	res.Write(data)
+}
+
+func deletePassword(res http.ResponseWriter, req *http.Request) {
+	current_password.value = ""
+	res.WriteHeader(http.StatusAccepted)
+	res.Header().Set("Content-Type", "application/json")
+
+	result := make(map[string]string)
+	result["message"] = "changed"
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		log.Println("Failed to marshaling json")
+		log.Println(err)
+	}
+	res.Write(data)
+}
+
+func updatePassword(res http.ResponseWriter, req *http.Request) {
+	current_password.value = req.PostFormValue("password")
+
+	res.WriteHeader(http.StatusAccepted)
+	res.Header().Set("Content-Type", "application/json")
+
+	result := make(map[string]string)
+	result["message"] = "changed"
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		log.Println("Failed to marshaling json")
+		log.Println(err)
+	}
+	res.Write(data)
+
+}
+
 func guessing(res http.ResponseWriter, req *http.Request) {
-	return
+	// var guessValue int = strconv.Atoi(req.PostFormValue("number"))
+
+	res.WriteHeader(http.StatusAccepted)
+	res.Header().Set("Content-Type", "application/json")
+	result := make(map[string]string)
+	result["message"] = "Number is incorrect"
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		log.Println("Failed to marshaling json")
+		log.Println(err)
+	}
+	res.Write(data)
 }
 
 // Create Content for token session
@@ -110,11 +171,13 @@ func auth(next http.HandlerFunc) http.HandlerFunc {
 func main() {
 	fmt.Printf("Starting Server at Port 8000\n")
 	current_password.value = "123456"
-	fmt.Printf(current_password.value)
+	fmt.Printf("Current Password is: %s\n", current_password.value)
 	router := mux.NewRouter()
 	router.HandleFunc("/login", login).Methods("POST")
 	router.HandleFunc("/guessing", auth(guessing)).Methods("POST")
 	router.HandleFunc("/value", auth(getValue)).Methods("GET")
-	router.HandleFunc("/getPassword")
+	router.HandleFunc("/getPassword", getPassword).Methods("GET")
+	router.HandleFunc("/updatePassword", updatePassword).Methods("PUT")
+	router.HandleFunc("/deletePassword", deletePassword).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
