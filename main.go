@@ -41,7 +41,8 @@ func login(res http.ResponseWriter, req *http.Request) {
 		createJson(res, req)
 	} else {
 		res.WriteHeader(http.StatusNotAcceptable)
-		result["message"] = "Not Authorized"
+		result["message"] = "Password is incorrect"
+		fmt.Println("Password is incorrect")
 		data, err := json.Marshal(result)
 		if err != nil {
 			log.Println("Failed to marshaling json")
@@ -103,6 +104,7 @@ func updatePassword(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusAccepted)
 	res.Header().Set("Content-Type", "application/json")
 
+	fmt.Printf("Current Password is: %s\n", current_password.value)
 	result := make(map[string]string)
 	result["message"] = "changed"
 
@@ -116,31 +118,51 @@ func updatePassword(res http.ResponseWriter, req *http.Request) {
 }
 
 func guessing(res http.ResponseWriter, req *http.Request) {
-	// var guessValue int = strconv.Atoi(req.PostFormValue("number"))
-
-	res.WriteHeader(http.StatusAccepted)
-	res.Header().Set("Content-Type", "application/json")
-	result := make(map[string]string)
-	result["message"] = "Number is incorrect"
-
-	data, err := json.Marshal(result)
+	var gussing string = req.FormValue("number")
+	var number int
+	number, err := strconv.Atoi(gussing)
 	if err != nil {
-		log.Println("Failed to marshaling json")
-		log.Println(err)
+		fmt.Printf("Converse int to string failed\n")
 	}
-	res.Write(data)
+	if number == x {
+		res.WriteHeader(http.StatusCreated)
+		res.Header().Set("Content-Type", "application/json")
+		result := make(map[string]string)
+		result["message"] = "Number is Correct generated New Number"
+		fmt.Println("Number is Correct generated New Number")
+		x = rand.Int()
+		data, err := json.Marshal(result)
+		if err != nil {
+			log.Println("Failed to marshaling json")
+			log.Println(err)
+		}
+		res.Write(data)
+	} else {
+		res.WriteHeader(http.StatusAccepted)
+		res.Header().Set("Content-Type", "application/json")
+		result := make(map[string]string)
+		result["message"] = "Number is incorrect"
+
+		data, err := json.Marshal(result)
+		if err != nil {
+			log.Println("Failed to marshaling json")
+			log.Println(err)
+		}
+		res.Write(data)
+	}
+
 }
 
 // Create Content for token session
 func createJson(res http.ResponseWriter, req *http.Request) {
 
-	res.WriteHeader(http.StatusCreated)
+	res.WriteHeader(http.StatusAccepted)
 	res.Header().Set("Content-Type", "application/json")
 	res.Header().Add("token", "token")
 
 	result := make(map[string]string)
 	result["message"] = "Session Created"
-
+	result["token"] = "token"
 	data, err := json.Marshal(result)
 	if err != nil {
 		log.Println("Failed to marshaling json")
@@ -175,7 +197,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/login", login).Methods("POST")
 	router.HandleFunc("/guessing", auth(guessing)).Methods("POST")
-	router.HandleFunc("/value", auth(getValue)).Methods("GET")
+	router.HandleFunc("/value", getValue).Methods("GET")
 	router.HandleFunc("/getPassword", getPassword).Methods("GET")
 	router.HandleFunc("/updatePassword", updatePassword).Methods("PUT")
 	router.HandleFunc("/deletePassword", deletePassword).Methods("DELETE")
