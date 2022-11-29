@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -40,7 +41,7 @@ func login(res http.ResponseWriter, req *http.Request) {
 	if req.PostFormValue("password") == current_password.value {
 		createJson(res, req)
 	} else {
-		res.WriteHeader(http.StatusNotAcceptable)
+		res.WriteHeader(http.StatusAccepted)
 		result["message"] = "Password is incorrect"
 		fmt.Println("Password is incorrect")
 		data, err := json.Marshal(result)
@@ -84,7 +85,7 @@ func getPassword(res http.ResponseWriter, req *http.Request) {
 
 func deletePassword(res http.ResponseWriter, req *http.Request) {
 	current_password.value = ""
-	res.WriteHeader(http.StatusAccepted)
+	res.WriteHeader(http.StatusOK)
 	res.Header().Set("Content-Type", "application/json")
 
 	result := make(map[string]string)
@@ -101,7 +102,11 @@ func deletePassword(res http.ResponseWriter, req *http.Request) {
 func updatePassword(res http.ResponseWriter, req *http.Request) {
 	current_password.value = req.PostFormValue("password")
 
-	res.WriteHeader(http.StatusAccepted)
+	res.WriteHeader(http.StatusOK)
+	res.Header().Set("Access-Control-Allow-Origin", "*")
+	res.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+	res.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	res.Header().Set("Access-Control-Allow-Credentials", "true")
 	res.Header().Set("Content-Type", "application/json")
 
 	fmt.Printf("Current Password is: %s\n", current_password.value)
@@ -123,6 +128,17 @@ func guessing(res http.ResponseWriter, req *http.Request) {
 	number, err := strconv.Atoi(gussing)
 	if err != nil {
 		fmt.Printf("Converse int to string failed\n")
+		res.WriteHeader(http.StatusAccepted)
+		res.Header().Set("Content-Type", "application/json")
+		result := make(map[string]string)
+		result["message"] = "Number is incorrect"
+
+		data, err := json.Marshal(result)
+		if err != nil {
+			log.Println("Failed to marshaling json")
+			log.Println(err)
+		}
+		res.Write(data)
 	}
 	if number == x {
 		res.WriteHeader(http.StatusCreated)
@@ -153,10 +169,22 @@ func guessing(res http.ResponseWriter, req *http.Request) {
 
 }
 
+func getGuessing(res http.ResponseWriter, req *http.Request) {
+	result := make(map[string]string)
+	result["number"] = strconv.Itoa(x)
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		log.Println("Failed to marshaling json")
+		log.Println(err)
+	}
+	res.Write(data)
+}
+
 // Create Content for token session
 func createJson(res http.ResponseWriter, req *http.Request) {
 
-	res.WriteHeader(http.StatusAccepted)
+	res.WriteHeader(http.StatusOK)
 	res.Header().Set("Content-Type", "application/json")
 	res.Header().Add("token", "token")
 
@@ -178,7 +206,7 @@ func auth(next http.HandlerFunc) http.HandlerFunc {
 			next(res, req)
 		} else {
 			var result = make(map[string]string)
-			res.WriteHeader(http.StatusNotAcceptable)
+			res.WriteHeader(http.StatusAccepted)
 			result["message"] = "Not Authorized"
 			data, err := json.Marshal(result)
 			if err != nil {
@@ -194,12 +222,17 @@ func main() {
 	fmt.Printf("Starting Server at Port 8000\n")
 	current_password.value = "123456"
 	fmt.Printf("Current Password is: %s\n", current_password.value)
+
 	router := mux.NewRouter()
 	router.HandleFunc("/login", login).Methods("POST")
 	router.HandleFunc("/guessing", auth(guessing)).Methods("POST")
+	router.HandleFunc("/getGuessing", auth(getGuessing)).Methods("POST")
 	router.HandleFunc("/value", getValue).Methods("GET")
 	router.HandleFunc("/getPassword", getPassword).Methods("GET")
+
+	// Browser Blocked
 	router.HandleFunc("/updatePassword", updatePassword).Methods("PUT")
 	router.HandleFunc("/deletePassword", deletePassword).Methods("DELETE")
-	log.Fatal(http.ListenAndServe(":8000", router))
+
+	log.Fatal(http.ListenAndServe(":8000", handlers.CORS()(router)))
 }
